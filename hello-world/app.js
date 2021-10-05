@@ -1,8 +1,9 @@
 const axios = require("axios");
 const log = require("lambda-log");
+const { metricScope, Unit } = require("aws-embedded-metrics");
 log.options.tagsKey = null;
 log.options.levelKey = "level";
-const url = "http://checkip.amazonaws.com/";
+const url = "https://httpstat.us/";
 let response;
 
 axios.interceptors.request.use(
@@ -32,22 +33,35 @@ axios.interceptors.response.use(
   }
 );
 
-exports.lambdaHandler = async (event, context) => {
+exports.lambdaHandler = metricScope((metrics) => async (event, context) => {
+  log.info(event);
+
   try {
-    const ret = await axios(url);
+    urlWithParams =
+      url +
+      event.queryStringParameters.code +
+      "?sleep=" +
+      event.queryStringParameters.sleep;
+
+    metrics.setNamespace(context.functionName);
+    metrics.putDimensions({ url: urlWithParams });
+    metrics.setProperty("RequestId", context.requestId);
+
+    log.info("calling", urlWithParams);
+    const ret = await axios(urlWithParams);
 
     log.info("fetched", { duration: ret.duration, url: url });
 
     log.info("embedded metric format BABY!", {
       duration: ret.duration,
       functionName: context.functionName,
-      hostname: new URL(url).hostname,
+      url: urlWithParams,
       _aws: {
         Timestamp: new Date().getTime(),
         CloudWatchMetrics: [
           {
             Namespace: "ytemf",
-            Dimensions: [["functionName", "hostname"]],
+            Dimensions: [["functionName", "url"]],
             Metrics: [
               {
                 Name: "duration",
@@ -62,13 +76,15 @@ exports.lambdaHandler = async (event, context) => {
     response = {
       statusCode: 200,
       body: JSON.stringify({
-        message: "hello world",
+        message: ret.data,
       }),
     };
+    metrics.putMetric("Success", 1, Unit.Count);
   } catch (err) {
-    console.log(err);
+    log.error(err);
+    metrics.putMetric("Error", 1, Unit.Count);
     return err;
   }
 
   return response;
-};
+});

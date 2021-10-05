@@ -1,20 +1,14 @@
 {
-  "name": "hello_world",
+  "name": "emf-on-fetch",
   "version": "1.0.0",
-  "description": "hello world sample for NodeJS",
+  "description": "metrics for a fetch",
   "main": "app.js",
-  "repository": "https://github.com/awslabs/aws-sam-cli/tree/develop/samcli/local/init/templates/cookiecutter-aws-sam-hello-nodejs",
-  "author": "SAM CLI",
+  "repository": "https://github.com/kaihendry/yt-aws-emf",
+  "author": "hendry+ytemf",
   "license": "MIT",
   "dependencies": {
-    "axios": "^0.21.1",
-    "lambda-log": "^3.0.0"
-  },
-  "scripts": {
-    "test": "mocha tests/unit/"
-  },
-  "devDependencies": {
-    "chai": "^4.2.0",
-    "mocha": "^8.2.1"
+    "aws-embedded-metrics": "^2.0.4",
+    "axios": "^0.22.0",
+    "lambda-log": "^3.0.2"
   }
 }
