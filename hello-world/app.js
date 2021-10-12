@@ -8,9 +8,7 @@ let response;
 
 axios.interceptors.request.use(
   function (config) {
-    config.metadata = {
-      startTime: new Date(),
-    };
+    config.metadata = { startTime: new Date() };
     return config;
   },
   function (error) {
@@ -32,22 +30,21 @@ axios.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
 exports.lambdaHandler = metricScope((metrics) => async (event, context) => {
-  log.info(event);
+  log.info("Starting request", { event, context });
+
+  const urlWithParams =
+    url +
+    event.queryStringParameters.code +
+    "?sleep=" +
+    event.queryStringParameters.sleep;
+
+  metrics.setNamespace("yt-backend");
+  metrics.putDimensions({ url: urlWithParams });
+  metrics.setProperty("RequestId", context.requestId);
 
   try {
-    urlWithParams =
-      url +
-      event.queryStringParameters.code +
-      "?sleep=" +
-      event.queryStringParameters.sleep;
-
-    metrics.setNamespace(context.functionName);
-    metrics.putDimensions({ url: urlWithParams });
-    metrics.setProperty("RequestId", context.requestId);
-
-    log.info("calling", urlWithParams);
+    log.info("calling", { urlWithParams });
     const ret = await axios(urlWithParams);
 
     log.info("fetched", { duration: ret.duration, url: url });
@@ -72,19 +69,24 @@ exports.lambdaHandler = metricScope((metrics) => async (event, context) => {
         ],
       },
     });
-
     response = {
       statusCode: 200,
       body: JSON.stringify({
         message: ret.data,
       }),
     };
-    metrics.putMetric("Success", 1, Unit.Count);
-  } catch (err) {
-    log.error(err);
-    metrics.putMetric("Error", 1, Unit.Count);
-    return err;
-  }
 
+    metrics.putMetric(ret.status, ret.duration, Unit.Milliseconds);
+  } catch (error) {
+    log.error(error);
+    metrics.putMetric(error.response.status, error.duration, Unit.Milliseconds);
+
+    response = {
+      statusCode: error.response.status,
+      body: JSON.stringify({
+        message: error.message,
+      }),
+    };
+  }
   return response;
 });
