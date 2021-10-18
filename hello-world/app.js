@@ -31,44 +31,23 @@ axios.interceptors.response.use(
   }
 );
 exports.lambdaHandler = metricScope((metrics) => async (event, context) => {
-  log.info("Starting request", { event, context });
+  log.info("Starting request", { context });
+
+  const bodySize = new TextEncoder().encode(event.body).length;
+  metrics.putMetric("Size", bodySize, Unit.Bytes);
 
   const urlWithParams =
     url +
-    event.queryStringParameters.code +
+    (event.queryStringParameters?.code || 200) +
     "?sleep=" +
-    event.queryStringParameters.sleep;
+    (event.queryStringParameters?.sleep || 0);
 
-  metrics.setNamespace("yt-backend");
-  metrics.putDimensions({ url: urlWithParams });
-  metrics.setProperty("RequestId", context.requestId);
+  console.log(urlWithParams);
 
   try {
     log.info("calling", { urlWithParams });
     const ret = await axios(urlWithParams);
 
-    log.info("fetched", { duration: ret.duration, url: url });
-
-    log.info("embedded metric format BABY!", {
-      duration: ret.duration,
-      functionName: context.functionName,
-      url: urlWithParams,
-      _aws: {
-        Timestamp: new Date().getTime(),
-        CloudWatchMetrics: [
-          {
-            Namespace: "ytemf",
-            Dimensions: [["functionName", "url"]],
-            Metrics: [
-              {
-                Name: "duration",
-                Unit: "Milliseconds",
-              },
-            ],
-          },
-        ],
-      },
-    });
     response = {
       statusCode: 200,
       body: JSON.stringify({
@@ -76,10 +55,19 @@ exports.lambdaHandler = metricScope((metrics) => async (event, context) => {
       }),
     };
 
-    metrics.putMetric(ret.status, ret.duration, Unit.Milliseconds);
+    metrics.setDimensions({
+      url: urlWithParams,
+      status: ret.status.toString(),
+    });
+
+    metrics.putMetric("Success", ret.duration, Unit.Milliseconds);
   } catch (error) {
     log.error(error);
-    metrics.putMetric(error.response.status, error.duration, Unit.Milliseconds);
+    metrics.setDimensions({
+      url: urlWithParams,
+      status: error.response.status.toString(),
+    });
+    metrics.putMetric("Error", error.duration, Unit.Milliseconds);
 
     response = {
       statusCode: error.response.status,

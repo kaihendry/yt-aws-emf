@@ -4,11 +4,11 @@ VERSION = "0.1"
 
 .PHONY: build deploy validate destroy
 
-build:
-	sam build
-
 deploy: build
 	AWS_PROFILE=$(PROFILE) sam deploy --resolve-s3 --stack-name $(STACK) --no-confirm-changeset --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM
+
+build:
+	sam build
 
 validate:
 	AWS_PROFILE=$(PROFILE) sam validate
