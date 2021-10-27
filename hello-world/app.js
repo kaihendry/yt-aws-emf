@@ -1,6 +1,9 @@
 const axios = require("axios");
 const log = require("lambda-log");
-const { metricScope, Unit } = require("aws-embedded-metrics");
+const { metricScope, Unit, Configuration } = require("aws-embedded-metrics");
+Configuration.debuggingLoggingEnabled = true;
+Configuration.namespace = "yt-emf1";
+
 log.options.tagsKey = null;
 log.options.levelKey = "level";
 const url = "https://httpstat.us/";
@@ -33,8 +36,8 @@ axios.interceptors.response.use(
 exports.lambdaHandler = metricScope((metrics) => async (event, context) => {
   log.info("Starting request", { context });
 
-  const bodySize = new TextEncoder().encode(event.body).length;
-  metrics.putMetric("Size", bodySize, Unit.Bytes);
+  // Issue: size doesn't work!
+  metrics.putMetric("Size", event.body?.length, Unit.Bytes);
 
   const urlWithParams =
     url +
@@ -45,8 +48,8 @@ exports.lambdaHandler = metricScope((metrics) => async (event, context) => {
   console.log(urlWithParams);
 
   try {
-    log.info("calling", { urlWithParams });
     const ret = await axios(urlWithParams);
+    log.info("called", { urlWithParams, duration: ret.duration });
 
     response = {
       statusCode: 200,
@@ -68,7 +71,6 @@ exports.lambdaHandler = metricScope((metrics) => async (event, context) => {
       status: error.response.status.toString(),
     });
     metrics.putMetric("Error", error.duration, Unit.Milliseconds);
-
     response = {
       statusCode: error.response.status,
       body: JSON.stringify({

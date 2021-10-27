@@ -21,3 +21,9 @@ local: build
 
 tail:
 	AWS_PROFILE=$(PROFILE) sam logs -n HelloWorldFunction --stack-name $(STACK) --tail
+
+test:
+	curl -X POST --data @ostechnix.txt https://otxsxqmsc4.execute-api.ap-southeast-1.amazonaws.com/Prod/hello/
+
+fail:
+	curl -i -X POST --data @ostechnix.txt https://otxsxqmsc4.execute-api.ap-southeast-1.amazonaws.com/Prod/hello/?code=500
