@@ -1,8 +1,5 @@
 const axios = require("axios");
 const log = require("lambda-log");
-const { metricScope, Unit, Configuration } = require("aws-embedded-metrics");
-Configuration.debuggingLoggingEnabled = true;
-Configuration.namespace = "yt-emf1";
 
 log.options.tagsKey = null;
 log.options.levelKey = "level";
@@ -33,11 +30,9 @@ axios.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-exports.lambdaHandler = metricScope((metrics) => async (event, context) => {
-  log.info("Starting request", { context });
 
-  // Issue: size doesn't work!
-  metrics.putMetric("Size", event.body?.length, Unit.Bytes);
+exports.lambdaHandler = async function (event, context) {
+  log.info("Starting request", { context });
 
   const urlWithParams =
     url +
@@ -58,25 +53,76 @@ exports.lambdaHandler = metricScope((metrics) => async (event, context) => {
       }),
     };
 
-    metrics.setDimensions({
-      url: urlWithParams,
+    log.info("response", {
       status: ret.status.toString(),
+      duration: ret.duration,
+      functionName: context.functionName,
+      hostname: new URL(url).hostname,
+      _aws: {
+        Timestamp: new Date().getTime(),
+        CloudWatchMetrics: [
+          {
+            Namespace: "ytemf-backend",
+            Dimensions: [["hostname", "status", "functionName"]],
+            Metrics: [
+              {
+                Name: "duration",
+                Unit: "Milliseconds",
+              },
+            ],
+          },
+        ],
+      },
     });
-
-    metrics.putMetric("Success", ret.duration, Unit.Milliseconds);
   } catch (error) {
-    log.error(error);
-    metrics.setDimensions({
-      url: urlWithParams,
+    log.info("response", {
       status: error.response.status.toString(),
+      duration: error.response.duration,
+      functionName: context.functionName,
+      hostname: new URL(url).hostname,
+      _aws: {
+        Timestamp: new Date().getTime(),
+        CloudWatchMetrics: [
+          {
+            Namespace: "ytemf-error",
+            Dimensions: [["hostname", "status", "functionName"]],
+            Metrics: [
+              {
+                Name: "duration",
+                Unit: "Milliseconds",
+              },
+            ],
+          },
+        ],
+      },
     });
-    metrics.putMetric("Error", error.duration, Unit.Milliseconds);
+    log.error(error, {
+      status: error.response.status.toString(),
+      duration: error.response.duration,
+      functionName: context.functionName,
+      hostname: new URL(url).hostname,
+      _aws: {
+        Timestamp: new Date().getTime(),
+        CloudWatchMetrics: [
+          {
+            Namespace: "ytemf-backend2",
+            Dimensions: [["hostname", "status", "functionName"]],
+            Metrics: [
+              {
+                Name: "duration",
+                Unit: "Milliseconds",
+              },
+            ],
+          },
+        ],
+      },
+    });
     response = {
-      statusCode: error.response.status,
+      statusCode: error.response.status.toString(),
       body: JSON.stringify({
         message: error.message,
       }),
     };
   }
   return response;
-});
+};

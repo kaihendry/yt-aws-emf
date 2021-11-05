@@ -7,8 +7,7 @@
   "author": "hendry+ytemf",
   "license": "MIT",
   "dependencies": {
-    "aws-embedded-metrics": "^2.0.4",
-    "axios": "^0.23.0",
+    "axios": "^0.24.0",
     "lambda-log": "^3.1.0"
   }
 }

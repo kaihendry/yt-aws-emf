@@ -17,7 +17,7 @@ destroy:
 	AWS_PROFILE=$(PROFILE) aws cloudformation delete-stack --stack-name $(STACK)
 
 local: build
-	sam local invoke HelloWorldFunction --event events/event.json
+	sam local invoke HelloWorldFunction --event events/bad.json
 
 tail:
 	AWS_PROFILE=$(PROFILE) sam logs -n HelloWorldFunction --stack-name $(STACK) --tail
