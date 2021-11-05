@@ -75,37 +75,16 @@ exports.lambdaHandler = async function (event, context) {
       },
     });
   } catch (error) {
-    log.info("response", {
-      status: error.response.status.toString(),
-      duration: error.response.duration,
-      functionName: context.functionName,
-      hostname: new URL(url).hostname,
-      _aws: {
-        Timestamp: new Date().getTime(),
-        CloudWatchMetrics: [
-          {
-            Namespace: "ytemf-error",
-            Dimensions: [["hostname", "status", "functionName"]],
-            Metrics: [
-              {
-                Name: "duration",
-                Unit: "Milliseconds",
-              },
-            ],
-          },
-        ],
-      },
-    });
     log.error(error, {
       status: error.response.status.toString(),
-      duration: error.response.duration,
+      duration: error.duration,
       functionName: context.functionName,
       hostname: new URL(url).hostname,
       _aws: {
         Timestamp: new Date().getTime(),
         CloudWatchMetrics: [
           {
-            Namespace: "ytemf-backend2",
+            Namespace: "ytemf-backend",
             Dimensions: [["hostname", "status", "functionName"]],
             Metrics: [
               {
