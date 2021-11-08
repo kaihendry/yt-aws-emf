@@ -54,7 +54,7 @@ exports.lambdaHandler = async function (event, context) {
     };
 
     log.info("response", {
-      status: ret.status.toString(),
+      status: ret.status,
       duration: ret.duration,
       functionName: context.functionName,
       hostname: new URL(url).hostname,
@@ -63,11 +63,14 @@ exports.lambdaHandler = async function (event, context) {
         CloudWatchMetrics: [
           {
             Namespace: "ytemf-backend",
-            Dimensions: [["hostname", "status", "functionName"]],
+            Dimensions: [["hostname", "functionName"]],
             Metrics: [
               {
                 Name: "duration",
                 Unit: "Milliseconds",
+              },
+			  {
+                Name: "status",
               },
             ],
           },
@@ -76,7 +79,7 @@ exports.lambdaHandler = async function (event, context) {
     });
   } catch (error) {
     log.error(error, {
-      status: error.response.status.toString(),
+      status: error.response.status,
       duration: error.duration,
       functionName: context.functionName,
       hostname: new URL(url).hostname,
@@ -85,11 +88,14 @@ exports.lambdaHandler = async function (event, context) {
         CloudWatchMetrics: [
           {
             Namespace: "ytemf-backend",
-            Dimensions: [["hostname", "status", "functionName"]],
+            Dimensions: [["hostname", "functionName"]],
             Metrics: [
               {
                 Name: "duration",
                 Unit: "Milliseconds",
+              },
+			 {
+                Name: "status",
               },
             ],
           },
